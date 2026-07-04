@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sourcing Analysis Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1a1f2e 0%, #16213e 100%);
+      border-bottom: 1px solid #2d3748;
+      padding: 24px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.3px;
+    }
+
+    header p {
+      font-size: 0.8rem;
+      color: #718096;
+      margin-top: 2px;
+    }
+
+    .badge {
+      background: #7c3aed22;
+      border: 1px solid #7c3aed55;
+      color: #a78bfa;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 28px 32px;
+    }
+
+    /* KPI Cards */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    .kpi-card {
+      background: #1a1f2e;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      padding: 18px 16px;
+      text-align: center;
+      transition: border-color 0.2s;
+    }
+
+    .kpi-card:hover { border-color: #4a5568; }
+
+    .kpi-value {
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .kpi-label {
+      font-size: 0.7rem;
+      color: #718096;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .kpi-sub {
+      font-size: 0.75rem;
+      color: #4a5568;
+      margin-top: 4px;
+    }
+
+    /* Section layout */
+    .section-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #718096;
+      margin-bottom: 14px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: #1a1f2e;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .card-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #cbd5e0;
+      margin-bottom: 16px;
+    }
+
+    /* Funnel */
+    .funnel-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .funnel-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .funnel-label {
+      width: 110px;
+      font-size: 0.75rem;
+      color: #a0aec0;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .funnel-bar-wrap {
+      flex: 1;
+      background: #0f1117;
+      border-radius: 4px;
+      height: 28px;
+      overflow: hidden;
+    }
+
+    .funnel-bar {
+      height: 100%;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      padding-left: 10px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #fff;
+      transition: width 1s ease;
+    }
+
+    .funnel-pct {
+      width: 52px;
+      font-size: 0.72rem;
+      color: #718096;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    /* AI Insights */
+    .insights-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .insight-card {
+      background: #0f1117;
+      border-radius: 10px;
+      padding: 14px 16px;
+      border-left: 3px solid #7c3aed;
+    }
+
+    .insight-card.warning { border-left-color: #f59e0b; }
+    .insight-card.success { border-left-color: #10b981; }
+    .insight-card.danger  { border-left-color: #ef4444; }
+    .insight-card.info    { border-left-color: #3b82f6; }
+
+    .insight-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: 4px;
+    }
+
+    .insight-body {
+      font-size: 0.72rem;
+      color: #718096;
+      line-height: 1.5;
+    }
+
+    .insight-body strong { color: #a78bfa; }
+    .insight-card.warning .insight-body strong { color: #fbbf24; }
+    .insight-card.success .insight-body strong { color: #34d399; }
+    .insight-card.danger  .insight-body strong { color: #f87171; }
+    .insight-card.info    .insight-body strong { color: #60a5fa; }
+
+    /* Recruiter table */
+    .rec-table { width: 100%; border-collapse: collapse; }
+    .rec-table th {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #4a5568;
+      padding: 6px 10px;
+      text-align: left;
+      border-bottom: 1px solid #2d3748;
+    }
+    .rec-table td {
+      font-size: 0.78rem;
+      padding: 8px 10px;
+      border-bottom: 1px solid #1a1f2e;
+      color: #cbd5e0;
+    }
+    .rec-table tr:last-child td { border-bottom: none; }
+
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+    .pill-green { background: #10b98122; color: #34d399; }
+    .pill-yellow { background: #f59e0b22; color: #fbbf24; }
+    .pill-red { background: #ef444422; color: #f87171; }
+
+    .bar-mini {
+      height: 6px;
+      border-radius: 3px;
+      background: #2d3748;
+      margin-top: 4px;
+      overflow: hidden;
+    }
+    .bar-mini-fill {
+      height: 100%;
+      border-radius: 3px;
+    }
+
+    /* AI section */
+    .ai-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .ai-badge {
+      background: #7c3aed33;
+      border: 1px solid #7c3aed66;
+      color: #c4b5fd;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      color: #2d3748;
+      font-size: 0.7rem;
+      border-top: 1px solid #1a1f2e;
+      margin-top: 10px;
+    }
+
+    canvas { max-height: 240px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Sourcing Analysis Dashboard</h1>
+    <p>601 candidates · Funnel & Conversion Intelligence · Mock Dataset</p>
+  </div>
+  <span class="badge">✦ AI-Powered Insights</span>
+</header>
+
+<div class="container">
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-value" style="color:#7c3aed">601</div>
+      <div class="kpi-label">Total Sourced</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value" style="color:#3b82f6">67.9%</div>
+      <div class="kpi-label">Response Rate</div>
+      <div class="kpi-sub">408 candidates</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value" style="color:#06b6d4">51.2%</div>
+      <div class="kpi-label">Screening Pass</div>
+      <div class="kpi-sub">308 candidates</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value" style="color:#10b981">10.3%</div>
+      <div class="kpi-label">Offer Rate</div>
+      <div class="kpi-sub">62 offers sent</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value" style="color:#f59e0b">8.2%</div>
+      <div class="kpi-label">Hire Rate</div>
+      <div class="kpi-sub">49 hires</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value" style="color:#ef4444">79%</div>
+      <div class="kpi-label">Offer Acceptance</div>
+      <div class="kpi-sub">49 of 62 offers</div>
+    </div>
+  </div>
+
+  <!-- Row 1: Funnel + Channel -->
+  <div class="grid-2">
+
+    <div class="card">
+      <div class="card-title">📊 Recruitment Funnel</div>
+      <div class="funnel-wrap">
+        <div class="funnel-step">
+          <div class="funnel-label">Sourced</div>
+          <div class="funnel-bar-wrap">
+            <div class="funnel-bar" style="width:100%; background:linear-gradient(90deg,#7c3aed,#6d28d9)">601</div>
+          </div>
+          <div class="funnel-pct">100%</div>
+        </div>
+        <div class="funnel-step">
+          <div class="funnel-label">Responded</div>
+          <div class="funnel-bar-wrap">
+            <div class="funnel-bar" style="width:67.9%; background:linear-gradient(90deg,#3b82f6,#2563eb)">408</div>
+          </div>
+          <div class="funnel-pct">67.9%</div>
+        </div>
+        <div class="funnel-step">
+          <div class="funnel-label">Screen Pass</div>
+          <div class="funnel-bar-wrap">
+            <div class="funnel-bar" style="width:51.2%; background:linear-gradient(90deg,#06b6d4,#0891b2)">308</div>
+          </div>
+          <div class="funnel-pct">51.2%</div>
+        </div>
+        <div class="funnel-step">
+          <div class="funnel-label">Interview Pass</div>
+          <div class="funnel-bar-wrap">
+            <div class="funnel-bar" style="width:38.9%; background:linear-gradient(90deg,#10b981,#059669)">234</div>
+          </div>
+          <div class="funnel-pct">38.9%</div>
+        </div>
+        <div class="funnel-step">
+          <div class="funnel-label">Test Taken</div>
+          <div class="funnel-bar-wrap">
+            <div class="funnel-bar" style="width:33.4%; background:linear-gradient(90deg,#84cc16,#65a30d)">201</div>
+          </div>
+          <div class="funnel-pct">33.4%</div>
+        </div>
+        <div class="funnel-step">
+          <div class="funnel-label">Offer Sent</div>
+          <div class="funnel-bar-wrap">
+            <div class="funnel-bar" style="width:10.3%; background:linear-gradient(90deg,#f59e0b,#d97706)">62</div>
+          </div>
+          <div class="funnel-pct">10.3%</div>
+        </div>
+        <div class="funnel-step">
+          <div class="funnel-label">✓ Hired</div>
+          <div class="funnel-bar-wrap">
+            <div class="funnel-bar" style="width:8.2%; background:linear-gradient(90deg,#ef4444,#dc2626)">49</div>
+          </div>
+          <div class="funnel-pct">8.2%</div>
+        </div>
+      </div>
+      <div style="margin-top:14px; padding:10px; background:#0f1117; border-radius:8px; font-size:0.72rem; color:#718096;">
+        ⚠️ <strong style="color:#fbbf24">Critical drop:</strong> Only <strong style="color:#fbbf24">30.8%</strong> of candidates who completed the technical test received an offer — the sharpest bottleneck in the entire funnel.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📡 Hire Rate by Source Channel</div>
+      <canvas id="channelChart"></canvas>
+    </div>
+
+  </div>
+
+  <!-- Row 2: Recruiter + Scores -->
+  <div class="grid-2">
+
+    <div class="card">
+      <div class="card-title">👤 Recruiter Performance</div>
+      <table class="rec-table">
+        <thead>
+          <tr>
+            <th>Recruiter</th>
+            <th>Sourced</th>
+            <th>Offers</th>
+            <th>Hired</th>
+            <th>Hire Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Bruno</strong></td>
+            <td>98</td>
+            <td>15</td>
+            <td>15</td>
+            <td><span class="pill pill-green">15.3%</span></td>
+          </tr>
+          <tr>
+            <td><strong>Ana</strong></td>
+            <td>75</td>
+            <td>13</td>
+            <td>10</td>
+            <td><span class="pill pill-green">13.3%</span></td>
+          </tr>
+          <tr>
+            <td><strong>Carla</strong></td>
+            <td>101</td>
+            <td>12</td>
+            <td>9</td>
+            <td><span class="pill pill-yellow">8.9%</span></td>
+          </tr>
+          <tr>
+            <td><strong>Gustavo</strong></td>
+            <td>121</td>
+            <td>11</td>
+            <td>6</td>
+            <td><span class="pill pill-yellow">5.0%</span></td>
+          </tr>
+          <tr>
+            <td><strong>Diego</strong></td>
+            <td>103</td>
+            <td>6</td>
+            <td>5</td>
+            <td><span class="pill pill-red">4.9%</span></td>
+          </tr>
+          <tr>
+            <td><strong>Fernanda</strong></td>
+            <td>103</td>
+            <td>5</td>
+            <td>4</td>
+            <td><span class="pill pill-red">3.9%</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="margin-top:14px; padding:10px; background:#0f1117; border-radius:8px; font-size:0.72rem; color:#718096;">
+        ⚠️ <strong style="color:#fbbf24">4× gap</strong> between top (Bruno 15.3%) and bottom (Fernanda 3.9%) performers — signals a <strong style="color:#fbbf24">process or calibration issue</strong> worth investigating.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🎯 Score Profile: Hired vs. Not Hired</div>
+      <canvas id="scoreChart"></canvas>
+      <div style="margin-top:12px; padding:10px; background:#0f1117; border-radius:8px; font-size:0.72rem; color:#718096;">
+        Candidates scoring <strong style="color:#34d399">Tech ≥80 · Behavior ≥75 · Manager ≥75</strong> have a <strong style="color:#34d399">17.9% hire rate</strong> — 2× the overall average. Use as early signal.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Row 3: Rejection + Channel Response -->
+  <div class="grid-3">
+
+    <div class="card">
+      <div class="card-title">❌ Rejection Breakdown</div>
+      <canvas id="rejectionChart"></canvas>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📬 Response Rate by Channel</div>
+      <canvas id="responseChart"></canvas>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📈 Conversion by Seniority & Work Mode</div>
+      <canvas id="seniorityChart"></canvas>
+      <div style="margin-top:10px;">
+        <div style="font-size:0.7rem; color:#718096; margin-bottom:6px;">Work mode hire rate</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <div style="font-size:0.72rem; background:#10b98122; color:#34d399; padding:3px 10px; border-radius:10px;">Hybrid 10.8%</div>
+          <div style="font-size:0.72rem; background:#f59e0b22; color:#fbbf24; padding:3px 10px; border-radius:10px;">In-person 8.8%</div>
+          <div style="font-size:0.72rem; background:#ef444422; color:#f87171; padding:3px 10px; border-radius:10px;">Remote 5.0%</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Row 4: Role Breakdown -->
+  <div class="grid-2" style="margin-bottom:20px;">
+
+    <div class="card">
+      <div class="card-title">💼 Best Channel per Role (Hire Rate %)</div>
+      <canvas id="roleChannelChart"></canvas>
+      <div style="margin-top:10px; padding:10px; background:#0f1117; border-radius:8px; font-size:0.72rem; color:#718096;">
+        The best channel <strong style="color:#a78bfa">varies by role</strong>. Github converts at 26.7% for Analista de Recrutamento — but 0% for TA Specialist. Channel strategy must be role-specific.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📐 Hire Rate: Role × Seniority</div>
+      <canvas id="roleSeniorityChart"></canvas>
+      <div style="margin-top:10px; padding:10px; background:#0f1117; border-radius:8px; font-size:0.72rem; color:#718096;">
+        "Senior = better" is <strong style="color:#fbbf24">not universal</strong>. Junior Analista de Recrutamento converts at 18.5% — above any global seniority average. People BP Junior: 0%. Role context matters.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- AI Insights -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="ai-header">
+      <div class="card-title" style="margin-bottom:0">AI-Generated Insights & Recommendations</div>
+      <span class="ai-badge">✦ CLAUDE AI</span>
+    </div>
+    <div class="insights-grid">
+      <div class="insight-card danger">
+        <div class="insight-title">🚨 Critical Bottleneck: Test → Offer</div>
+        <div class="insight-body">Only <strong>30.8%</strong> of candidates who completed the technical test received an offer. This is the steepest drop in the funnel. Investigate whether the bar is too high, misaligned, or whether evaluators are inconsistent at this stage.</div>
+      </div>
+      <div class="insight-card warning">
+        <div class="insight-title">⚡ Github & Inbound: Prioritize These Channels</div>
+        <div class="insight-body"><strong>Github (11.0%)</strong> and <strong>Inbound (10.1%)</strong> deliver the highest hire rates overall. But channel ROI is role-dependent — Github is 26.7% for Analista de Recrutamento and 0% for TA Specialist. Match channel to role.</div>
+      </div>
+      <div class="insight-card success">
+        <div class="insight-title">✅ Early Signal: Triple Score Rule</div>
+        <div class="insight-body">Candidates with <strong>Tech ≥80, Behavior ≥75, Manager ≥75</strong> have a 17.9% hire rate — more than double the average. Implement this as a prioritization filter to focus recruiter time on high-probability profiles.</div>
+      </div>
+      <div class="insight-card info">
+        <div class="insight-title">🔍 Recruiter Calibration Gap</div>
+        <div class="insight-body">Bruno closes <strong>100% of his offers</strong> (15/15). Gustavo generates 11 offers but closes only 6. The issue may be offer quality, timing, or candidate experience. A calibration session between top and bottom performers could unlock significant gains.</div>
+      </div>
+      <div class="insight-card danger">
+        <div class="insight-title">📵 No Response = #1 Killer</div>
+        <div class="insight-body"><strong>210 candidates (58% of all rejections)</strong> simply never responded. Inbound and Banco de Talentos show the best response rates. Revisit outreach messaging for cold channels — a structured 2nd reach-out cadence could recover meaningful pipeline.</div>
+      </div>
+      <div class="insight-card success">
+        <div class="insight-title">🎯 Bet on Senior+ & Hybrid — But Check the Role</div>
+        <div class="insight-body">Staff converts at 13.3% vs. Junior 4.6% globally. But Junior Analista de Recrutamento hits 18.5%. Hybrid outperforms Remote across all roles (worst: Analista de Dados Remote at 1.9%). Always combine seniority and work mode decisions with role context.</div>
+      </div>
+      <div class="insight-card warning">
+        <div class="insight-title">🗂️ Role Drives Channel Strategy</div>
+        <div class="insight-body">LinkedIn works for TA Specialist (<strong>15%</strong>) but fails for People BP (<strong>0%</strong>). Banco de Talentos is 21.1% for Analista de Recrutamento but 0% for Analista de Dados. A one-size-fits-all sourcing strategy wastes budget and recruiter time.</div>
+      </div>
+      <div class="insight-card info">
+        <div class="insight-title">🔮 Next Level: Predictive Scoring by Role</div>
+        <div class="insight-body">With more data volume, a simple regression model could predict hire probability by combining <strong>role + channel + seniority + work mode</strong> — turning these dimensions from descriptive into prescriptive, telling recruiters where to focus before they source.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>Sourcing Analysis Dashboard · Built with Python + Claude AI · Mock Dataset</footer>
+
+<script>
+  Chart.defaults.color = '#718096';
+  Chart.defaults.borderColor = '#2d3748';
+
+  // Channel hire rate
+  new Chart(document.getElementById('channelChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Github','Inbound','Hunting','LinkedIn','Banco T.','Comunidade','Evento','Indicação'],
+      datasets: [{
+        label: 'Hire Rate (%)',
+        data: [11.0, 10.1, 9.3, 8.6, 8.8, 7.9, 4.9, 4.7],
+        backgroundColor: [
+          '#10b981','#10b981','#3b82f6','#3b82f6',
+          '#3b82f6','#f59e0b','#ef4444','#ef4444'
+        ],
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#1a1f2e' }, ticks: { callback: v => v + '%' } },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+
+  // Score comparison
+  new Chart(document.getElementById('scoreChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Technical Score','Behavior Score','Manager Score'],
+      datasets: [
+        {
+          label: 'Hired',
+          data: [82.4, 80.1, 80.9],
+          backgroundColor: '#10b98188',
+          borderColor: '#10b981',
+          borderWidth: 1,
+          borderRadius: 4,
+        },
+        {
+          label: 'Not Hired',
+          data: [72.9, 74.0, 73.1],
+          backgroundColor: '#ef444488',
+          borderColor: '#ef4444',
+          borderWidth: 1,
+          borderRadius: 4,
+        }
+      ]
+    },
+    options: {
+      plugins: { legend: { labels: { boxWidth: 12, font: { size: 11 } } } },
+      scales: {
+        x: { grid: { display: false } },
+        y: { min: 60, max: 90, grid: { color: '#1a1f2e' } }
+      }
+    }
+  });
+
+  // Rejection breakdown
+  new Chart(document.getElementById('rejectionChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['No Response','Failed Test','Timing','Low Engagement','Low Tech Fit','Headcount','Salary','Other Offer','Culture'],
+      datasets: [{
+        data: [210, 25, 24, 23, 23, 22, 18, 18, 12],
+        backgroundColor: [
+          '#ef4444','#f59e0b','#3b82f6','#8b5cf6',
+          '#06b6d4','#10b981','#ec4899','#84cc16','#a78bfa'
+        ],
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      cutout: '65%',
+      plugins: {
+        legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 }, padding: 8 } }
+      }
+    }
+  });
+
+  // Response rate by channel
+  new Chart(document.getElementById('responseChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Inbound','Banco T.','Github','Evento','Comunidade','LinkedIn','Hunting','Indicação'],
+      datasets: [{
+        label: 'Response Rate (%)',
+        data: [80, 75, 68, 67, 67, 63, 64, 59],
+        backgroundColor: '#7c3aed88',
+        borderColor: '#7c3aed',
+        borderWidth: 1,
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { min: 40, max: 100, grid: { color: '#1a1f2e' }, ticks: { callback: v => v + '%' } },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+
+  // Seniority
+  new Chart(document.getElementById('seniorityChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Junior','Pleno','Senior','Staff'],
+      datasets: [{
+        label: 'Hire Rate (%)',
+        data: [4.6, 7.0, 9.8, 13.3],
+        backgroundColor: ['#ef4444','#f59e0b','#3b82f6','#10b981'],
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false } },
+        y: { grid: { color: '#1a1f2e' }, ticks: { callback: v => v + '%' } }
+      }
+    }
+  });
+
+  // Role x Channel (best channels per role)
+  new Chart(document.getElementById('roleChannelChart'), {
+    type: 'bar',
+    data: {
+      labels: ['An. Recrutamento','People BP','An. Dados','TA Specialist'],
+      datasets: [
+        {
+          label: 'Github',
+          data: [26.7, 11.8, 8.7, 0.0],
+          backgroundColor: '#7c3aed88', borderColor: '#7c3aed', borderWidth: 1, borderRadius: 3,
+        },
+        {
+          label: 'Inbound',
+          data: [17.6, 4.5, 13.3, 6.7],
+          backgroundColor: '#10b98188', borderColor: '#10b981', borderWidth: 1, borderRadius: 3,
+        },
+        {
+          label: 'LinkedIn',
+          data: [5.0, 0.0, 13.0, 15.0],
+          backgroundColor: '#3b82f688', borderColor: '#3b82f6', borderWidth: 1, borderRadius: 3,
+        },
+        {
+          label: 'Banco T.',
+          data: [21.1, 5.9, 0.0, 6.7],
+          backgroundColor: '#f59e0b88', borderColor: '#f59e0b', borderWidth: 1, borderRadius: 3,
+        },
+      ]
+    },
+    options: {
+      plugins: { legend: { labels: { boxWidth: 10, font: { size: 10 } } } },
+      scales: {
+        x: { grid: { display: false } },
+        y: { grid: { color: '#1a1f2e' }, ticks: { callback: v => v + '%' } }
+      }
+    }
+  });
+
+  // Role x Seniority
+  new Chart(document.getElementById('roleSeniorityChart'), {
+    type: 'bar',
+    data: {
+      labels: ['An. Recrutamento','People BP','An. Dados','TA Specialist'],
+      datasets: [
+        {
+          label: 'Junior',
+          data: [18.5, 0.0, 0.0, 0.0],
+          backgroundColor: '#ef444488', borderColor: '#ef4444', borderWidth: 1, borderRadius: 3,
+        },
+        {
+          label: 'Pleno',
+          data: [4.2, 9.0, 9.8, 3.8],
+          backgroundColor: '#f59e0b88', borderColor: '#f59e0b', borderWidth: 1, borderRadius: 3,
+        },
+        {
+          label: 'Senior',
+          data: [13.6, 14.9, 5.5, 4.7],
+          backgroundColor: '#3b82f688', borderColor: '#3b82f6', borderWidth: 1, borderRadius: 3,
+        },
+        {
+          label: 'Staff',
+          data: [15.4, 4.5, 11.1, 42.9],
+          backgroundColor: '#10b98188', borderColor: '#10b981', borderWidth: 1, borderRadius: 3,
+        },
+      ]
+    },
+    options: {
+      plugins: { legend: { labels: { boxWidth: 10, font: { size: 10 } } } },
+      scales: {
+        x: { grid: { display: false } },
+        y: { grid: { color: '#1a1f2e' }, ticks: { callback: v => v + '%' } }
+      }
+    }
+  });
+</script>
+</body>
+</html>
